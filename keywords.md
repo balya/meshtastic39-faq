@@ -1,0 +1,12 @@
+- mqtt
+- антенна
+- gps
+- bluetooth
+- wifi
+- heltec
+- faketec
+- xiao
+- карта
+- прошивка
+- android
+- ios
