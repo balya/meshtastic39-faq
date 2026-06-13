@@ -80,6 +80,7 @@ https://meshmap.net
 ---
 
 ## Полезные ссылки
+Telegram группа Калининградского сообщества Meshtastic: `https://t.me/meshtastic_39`  
 Официальная документация по Meshtastic: `https://meshtastic.org/docs/introduction/`  
 Официальный git репозиторий Meshtastic: `https://github.com/meshtastic`  
 База знаний на русском языке от проекта MeshWorks: `https://meshworks.ru/introduction`  
