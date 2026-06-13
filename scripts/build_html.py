@@ -248,20 +248,62 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Meshtastic39 FAQ</title>
   <meta name="description" content="Краткая база знаний Meshtastic для Калининградского сообщества">
+  <script>
+    (() => {{
+      let saved = null;
+      try {{
+        saved = localStorage.getItem('faq-theme');
+      }} catch (error) {{}}
+      const theme = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = theme;
+    }})();
+  </script>
   <style>
     :root {{
-      --bg: #f6f7f4;
+      --bg: #ffffff;
       --surface: #ffffff;
-      --surface-soft: #eef3ef;
-      --text: #17211c;
-      --muted: #66736d;
-      --line: #d9e0dc;
-      --accent: #167a55;
-      --accent-strong: #0d5f40;
-      --mark: #fff2a8;
-      --shadow: 0 16px 44px rgba(23, 33, 28, 0.08);
+      --surface-soft: #f5f6f7;
+      --surface-hover: rgba(0, 0, 0, 0.05);
+      --text: #1c1e21;
+      --text-strong: #1c1e21;
+      --muted: #525860;
+      --line: #dadde1;
+      --accent: #2e8555;
+      --accent-strong: #277148;
+      --code-bg: #f6f7f8;
+      --code-text: var(--text-strong);
+      --code-border: rgba(0, 0, 0, 0.10);
+      --pre-bg: #f6f7f8;
+      --pre-text: var(--text);
+      --mark: rgba(255, 215, 142, 0.45);
+      --mark-current: #67ea94;
+      --topbar: rgba(255, 255, 255, 0.86);
+      --shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.10);
       color-scheme: light;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, BlinkMacSystemFont, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    }}
+
+    html[data-theme="dark"] {{
+      --bg: #1b1b1d;
+      --surface: #242526;
+      --surface-soft: #303541;
+      --surface-hover: rgba(255, 255, 255, 0.08);
+      --text: #e3e3e3;
+      --text-strong: #ffffff;
+      --muted: #bfc7d5;
+      --line: #303541;
+      --accent: #67ea94;
+      --accent-strong: #67ea94;
+      --code-bg: rgba(255, 255, 255, 0.10);
+      --code-text: #ffffff;
+      --code-border: rgba(0, 0, 0, 0.10);
+      --pre-bg: #292d3e;
+      --pre-text: #bfc7d5;
+      --mark: rgba(255, 215, 142, 0.25);
+      --mark-current: rgba(103, 234, 148, 0.45);
+      --topbar: rgba(10, 12, 15, 0.85);
+      --shadow: 0 5px 40px rgba(0, 0, 0, 0.20);
+      color-scheme: dark;
     }}
 
     * {{ box-sizing: border-box; }}
@@ -271,7 +313,9 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       background: var(--bg);
       color: var(--text);
       font-size: 16px;
-      line-height: 1.55;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizelegibility;
     }}
 
     a {{ color: var(--accent-strong); text-decoration-thickness: 1px; text-underline-offset: 3px; }}
@@ -282,18 +326,18 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       top: 0;
       z-index: 30;
       border-bottom: 1px solid var(--line);
-      background: rgba(246, 247, 244, 0.92);
-      backdrop-filter: blur(14px);
+      background: var(--topbar);
+      backdrop-filter: blur(12px);
     }}
 
     .topbar-inner {{
       display: grid;
-      grid-template-columns: minmax(210px, 280px) minmax(0, 1fr);
-      gap: 24px;
+      grid-template-columns: minmax(210px, 280px) minmax(0, 1fr) auto;
+      gap: 16px;
       align-items: center;
       max-width: 1280px;
       margin: 0 auto;
-      padding: 14px 24px;
+      padding: 9px 24px;
     }}
 
     .brand {{
@@ -304,6 +348,12 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
 
     .brand strong {{ font-size: 18px; line-height: 1.2; }}
     .brand span {{ color: var(--muted); font-size: 13px; }}
+
+    .top-actions {{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }}
 
     .menu-button {{
       display: none;
@@ -335,6 +385,35 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
 
     .menu-button:hover {{ border-color: var(--accent); color: var(--accent-strong); }}
 
+    .theme-button {{
+      display: inline-grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }}
+
+    .theme-button:hover {{
+      border-color: var(--accent);
+      color: var(--accent-strong);
+      background: var(--surface-hover);
+    }}
+
+    .theme-icon {{
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }}
+
+    html[data-theme="light"] #themeIconMoon,
+    html[data-theme="dark"] #themeIconSun {{
+      display: none;
+    }}
+
     .search {{
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto auto auto;
@@ -346,7 +425,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       width: 100%;
       min-height: 42px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 0 14px;
       background: var(--surface);
       color: var(--text);
@@ -369,7 +448,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       width: 42px;
       height: 42px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 6px;
       background: var(--surface);
       color: var(--text);
       cursor: pointer;
@@ -393,7 +472,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       min-width: 0;
       max-height: calc(100vh - 104px);
       overflow: auto;
-      padding-right: 4px;
+      padding: 8px 8px 8px 0;
     }}
 
     .mobile-menu-backdrop {{
@@ -420,9 +499,9 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       grid-template-columns: 44px minmax(0, 1fr);
       gap: 10px;
       align-items: start;
-      padding: 9px 10px;
-      border-radius: 8px;
-      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      color: var(--muted);
       font-size: 14px;
       line-height: 1.35;
       text-decoration: none;
@@ -434,7 +513,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     }}
 
     .nav-item:hover, .nav-item.active {{
-      background: var(--surface-soft);
+      background: var(--surface-hover);
       color: var(--accent-strong);
     }}
 
@@ -452,7 +531,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       scroll-margin-top: 92px;
       margin-bottom: 14px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 6px;
       background: var(--surface);
       box-shadow: var(--shadow);
       overflow: hidden;
@@ -463,9 +542,9 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 12px;
       align-items: start;
-      padding: 20px 22px 14px;
+      padding: 18px 22px 12px;
       border-bottom: 1px solid var(--line);
-      background: #fbfcfa;
+      background: var(--surface);
     }}
 
     .article-id {{
@@ -478,7 +557,9 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
 
     .article h2 {{
       margin: 0;
-      font-size: 22px;
+      color: var(--text-strong);
+      font-size: 24px;
+      font-weight: 700;
       line-height: 1.25;
       letter-spacing: 0;
       overflow-wrap: anywhere;
@@ -489,7 +570,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       place-items: center;
       width: 32px;
       height: 32px;
-      border-radius: 8px;
+      border-radius: 6px;
       color: var(--muted);
       text-decoration: none;
     }}
@@ -505,25 +586,45 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       overflow-wrap: anywhere;
     }}
 
-    .article-body p {{ margin: 0 0 12px; }}
+    .article-body p {{ margin: 0 0 16px; }}
     .article-body p:last-child {{ margin-bottom: 0; }}
     .article-body ul, .article-body ol {{ margin: 0 0 14px 22px; padding: 0; }}
     .article-body li {{ margin: 4px 0; }}
     .article-body code {{
-      padding: 2px 5px;
-      border-radius: 5px;
-      background: #edf1ee;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.94em;
+      padding: 0.1rem;
+      border: 1px solid var(--code-border);
+      border-radius: 0.4rem;
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.6;
+      vertical-align: middle;
     }}
     .article-body pre {{
       overflow: auto;
-      padding: 14px;
-      border-radius: 8px;
-      background: #17211c;
-      color: #f6f7f4;
+      border-radius: 6px;
+      background: var(--pre-bg);
+      color: var(--pre-text);
+      font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 1rem;
+      line-height: 1.75;
+      margin: 0 0 1rem;
+      padding: 0;
     }}
-    .article-body pre code {{ padding: 0; background: transparent; color: inherit; }}
+    .article-body pre code {{
+      display: block;
+      padding: 1rem;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 400;
+      line-height: inherit;
+      white-space: pre;
+    }}
 
     .tag-link {{
       display: inline;
@@ -545,13 +646,13 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     }}
 
     mark.search-hit.current {{
-      background: #87e5bd;
+      background: var(--mark-current);
       outline: 2px solid rgba(22, 122, 85, 0.28);
     }}
 
     .spoiler {{
       border-radius: 4px;
-      background: #cfd7d2;
+      background: var(--line);
       color: transparent;
       cursor: default;
     }}
@@ -561,7 +662,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       display: none;
       padding: 24px;
       border: 1px dashed var(--line);
-      border-radius: 8px;
+      border-radius: 6px;
       color: var(--muted);
       background: var(--surface);
     }}
@@ -573,6 +674,11 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
         padding: 12px 16px;
+      }}
+
+      .top-actions {{
+        grid-column: 2;
+        grid-row: 1;
       }}
 
       .menu-button {{
@@ -606,7 +712,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         overflow: hidden;
         border-left: 1px solid var(--line);
         background: var(--surface);
-        box-shadow: -24px 0 48px rgba(23, 33, 28, 0.18);
+        box-shadow: var(--shadow);
         transform: translateX(100%);
         transition: transform 160ms ease;
       }}
@@ -630,7 +736,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         min-width: 0;
         padding: 11px 10px;
         border: 1px solid var(--line);
-        background: #fbfcfa;
+        background: var(--surface);
       }}
 
       .mobile-menu-backdrop {{
@@ -638,7 +744,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         position: fixed;
         inset: 0;
         z-index: 49;
-        background: rgba(23, 33, 28, 0.38);
+        background: rgba(0, 0, 0, 0.40);
         opacity: 0;
         pointer-events: none;
         transition: opacity 160ms ease;
@@ -693,7 +799,13 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         <strong>Meshtastic39 FAQ</strong>
         <span>{len(articles)} вопросов и ответов</span>
       </div>
-      <button class="menu-button" id="menuButton" type="button" aria-label="Открыть список вопросов" aria-controls="questionNav" aria-expanded="false"><span></span></button>
+      <div class="top-actions">
+        <button class="theme-button" id="themeButton" type="button" aria-label="Переключить тему">
+          <svg class="theme-icon" id="themeIconSun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0-8a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1Zm0 18a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1ZM4.22 3.8a1 1 0 0 1 1.41 0l1.42 1.42a1 1 0 0 1-1.42 1.41L4.22 5.22a1 1 0 0 1 0-1.42Zm12.73 12.73a1 1 0 0 1 1.42 0l1.41 1.42a1 1 0 0 1-1.41 1.41l-1.42-1.41a1 1 0 0 1 0-1.42ZM1 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1Zm18 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1ZM7.05 16.95a1 1 0 0 1 0 1.42l-1.42 1.41a1 1 0 0 1-1.41-1.41l1.41-1.42a1 1 0 0 1 1.42 0ZM19.78 4.22a1 1 0 0 1 0 1.41l-1.41 1.42a1 1 0 0 1-1.42-1.42l1.42-1.41a1 1 0 0 1 1.41 0Z"/></svg>
+          <svg class="theme-icon" id="themeIconMoon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.37 5.51A7.5 7.5 0 0 0 18.49 14.63 7 7 0 1 1 9.37 5.51ZM12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a1 1 0 0 0-1.65-.55 5.5 5.5 0 0 1-7.34-7.34 1 1 0 0 0-.55-1.65A9.1 9.1 0 0 0 12 3Z"/></svg>
+        </button>
+        <button class="menu-button" id="menuButton" type="button" aria-label="Открыть список вопросов" aria-controls="questionNav" aria-expanded="false"><span></span></button>
+      </div>
       <div class="search" role="search">
         <input id="searchInput" type="search" autocomplete="off" placeholder="Поиск по статьям, например #антенна">
         <button class="icon-button" id="prevHit" type="button" aria-label="Предыдущее совпадение">↑</button>
@@ -727,6 +839,9 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     const searchCount = document.querySelector('#searchCount');
     const emptyState = document.querySelector('#emptyState');
     const menuButton = document.querySelector('#menuButton');
+    const themeButton = document.querySelector('#themeButton');
+    const themeIconSun = document.querySelector('#themeIconSun');
+    const themeIconMoon = document.querySelector('#themeIconMoon');
     const mobileMenuBackdrop = document.querySelector('#mobileMenuBackdrop');
     const articles = [...document.querySelectorAll('.article')];
     const navItems = [...document.querySelectorAll('.nav-item')];
@@ -738,6 +853,18 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       document.body.classList.toggle('mobile-menu-open', open);
       menuButton.setAttribute('aria-expanded', String(open));
       menuButton.setAttribute('aria-label', open ? 'Закрыть список вопросов' : 'Открыть список вопросов');
+    }}
+
+    function setTheme(theme) {{
+      document.documentElement.dataset.theme = theme;
+      try {{
+        localStorage.setItem('faq-theme', theme);
+      }} catch (error) {{}}
+      const isDark = theme === 'dark';
+      themeIconSun.style.display = isDark ? 'none' : 'block';
+      themeIconMoon.style.display = isDark ? 'block' : 'none';
+      themeButton.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
+      themeButton.setAttribute('title', isDark ? 'Светлая тема' : 'Тёмная тема');
     }}
 
     function escapeRegExp(value) {{
@@ -844,6 +971,10 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     menuButton.addEventListener('click', () => {{
       setMenuOpen(!document.body.classList.contains('mobile-menu-open'));
     }});
+    themeButton.addEventListener('click', () => {{
+      const current = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    }});
     mobileMenuBackdrop.addEventListener('click', () => setMenuOpen(false));
     window.addEventListener('keydown', (event) => {{
       if (event.key === 'Escape') setMenuOpen(false);
@@ -862,6 +993,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     }}, {{ rootMargin: '-20% 0px -65% 0px', threshold: [0.1, 0.3, 0.6] }});
 
     articles.forEach((article) => observer.observe(article));
+    setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
 
     window.addEventListener('hashchange', () => {{
       const target = document.querySelector(window.location.hash);
