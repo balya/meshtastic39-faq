@@ -62,6 +62,36 @@
     .brand strong { font-size: 18px; line-height: 1.2; }
     .brand span { color: var(--muted); font-size: 13px; }
 
+    .menu-button {
+      display: none;
+      position: relative;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .menu-button span,
+    .menu-button::before,
+    .menu-button::after {
+      position: absolute;
+      left: 11px;
+      width: 18px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+      content: "";
+    }
+
+    .menu-button span { top: 20px; }
+    .menu-button::before { top: 14px; }
+    .menu-button::after { top: 26px; }
+
+    .menu-button:hover { border-color: var(--accent); color: var(--accent-strong); }
+
     .search {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto auto auto;
@@ -121,6 +151,10 @@
       max-height: calc(100vh - 104px);
       overflow: auto;
       padding-right: 4px;
+    }
+
+    .mobile-menu-backdrop {
+      display: none;
     }
 
     .nav-title {
@@ -293,9 +327,18 @@
 
     @media (max-width: 860px) {
       .topbar-inner {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
         padding: 12px 16px;
+      }
+
+      .menu-button {
+        display: inline-grid;
+        place-items: center;
+      }
+
+      .search {
+        grid-column: 1 / -1;
       }
 
       .layout {
@@ -304,22 +347,67 @@
       }
 
       .sidebar {
-        position: relative;
-        top: auto;
-        max-height: none;
-        overflow: visible;
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        width: min(360px, calc(100vw - 48px));
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        padding: 18px 14px 18px 18px;
+        overflow: hidden;
+        border-left: 1px solid var(--line);
+        background: var(--surface);
+        box-shadow: -24px 0 48px rgba(23, 33, 28, 0.18);
+        transform: translateX(100%);
+        transition: transform 160ms ease;
+      }
+
+      .mobile-menu-open .sidebar {
+        transform: translateX(0);
       }
 
       .nav-list {
-        flex-direction: row;
-        width: 100%;
-        max-width: 100%;
-        overflow-x: auto;
-        padding-bottom: 4px;
+        flex-direction: column;
+        flex: 1;
+        gap: 8px;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-bottom: 20px;
+        -webkit-overflow-scrolling: touch;
       }
 
       .nav-item {
-        min-width: 220px;
+        min-width: 0;
+        padding: 11px 10px;
+        border: 1px solid var(--line);
+        background: #fbfcfa;
+      }
+
+      .mobile-menu-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 49;
+        background: rgba(23, 33, 28, 0.38);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 160ms ease;
+      }
+
+      .mobile-menu-open .mobile-menu-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .mobile-menu-open {
+        overflow: hidden;
       }
 
       .article {
@@ -362,6 +450,7 @@
         <strong>Meshtastic39 FAQ</strong>
         <span>20 вопросов и ответов</span>
       </div>
+      <button class="menu-button" id="menuButton" type="button" aria-label="Открыть список вопросов" aria-controls="questionNav" aria-expanded="false"><span></span></button>
       <div class="search" role="search">
         <input id="searchInput" type="search" autocomplete="off" placeholder="Поиск по статьям, например #антенна">
         <button class="icon-button" id="prevHit" type="button" aria-label="Предыдущее совпадение">↑</button>
@@ -371,8 +460,10 @@
     </div>
   </header>
 
+  <div class="mobile-menu-backdrop" id="mobileMenuBackdrop"></div>
+
   <main class="layout">
-    <aside class="sidebar" aria-label="Список вопросов">
+    <aside class="sidebar" id="questionNav" aria-label="Список вопросов">
       <p class="nav-title">Вопросы</p>
       <nav class="nav-list">
         <a class="nav-item" href="#q-0001" data-target="q-0001"><span>0001</span>Что такое Meshtastic и для чего он нужен?</a>
@@ -638,11 +729,19 @@
     const nextButton = document.querySelector('#nextHit');
     const searchCount = document.querySelector('#searchCount');
     const emptyState = document.querySelector('#emptyState');
+    const menuButton = document.querySelector('#menuButton');
+    const mobileMenuBackdrop = document.querySelector('#mobileMenuBackdrop');
     const articles = [...document.querySelectorAll('.article')];
     const navItems = [...document.querySelectorAll('.nav-item')];
     const markClass = 'search-hit';
     let hits = [];
     let currentHit = -1;
+
+    function setMenuOpen(open) {
+      document.body.classList.toggle('mobile-menu-open', open);
+      menuButton.setAttribute('aria-expanded', String(open));
+      menuButton.setAttribute('aria-label', open ? 'Закрыть список вопросов' : 'Открыть список вопросов');
+    }
 
     function escapeRegExp(value) {
       return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -738,6 +837,19 @@
       if (tag) {
         setSearch(tag.dataset.tag);
       }
+
+      const navItem = event.target.closest('.nav-item');
+      if (navItem) {
+        setMenuOpen(false);
+      }
+    });
+
+    menuButton.addEventListener('click', () => {
+      setMenuOpen(!document.body.classList.contains('mobile-menu-open'));
+    });
+    mobileMenuBackdrop.addEventListener('click', () => setMenuOpen(false));
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') setMenuOpen(false);
     });
 
     searchInput.addEventListener('input', () => updateSearch(true));
