@@ -465,7 +465,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
 
     .search {{
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 8px;
       align-items: center;
     }}
@@ -484,13 +484,6 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     .search input:focus {{
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(22, 122, 85, 0.14);
-    }}
-
-    .search-count {{
-      min-width: 74px;
-      color: var(--muted);
-      font-size: 14px;
-      text-align: center;
     }}
 
     .icon-button {{
@@ -896,12 +889,6 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         grid-template-columns: 1fr auto auto;
       }}
 
-      .search-count {{
-        grid-column: 1 / -1;
-        min-width: 0;
-        text-align: left;
-      }}
-
       .article-header {{
         grid-template-columns: 1fr auto;
         padding: 16px 16px 12px;
@@ -938,7 +925,6 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         <input id="searchInput" type="search" autocomplete="off" placeholder="Поиск по статьям, например #антенна">
         <button class="icon-button" id="prevHit" type="button" aria-label="Предыдущее совпадение">↑</button>
         <button class="icon-button" id="nextHit" type="button" aria-label="Следующее совпадение">↓</button>
-        <span class="search-count" id="searchCount">0 / 0</span>
       </div>
     </div>
   </header>
@@ -964,7 +950,6 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     const searchInput = document.querySelector('#searchInput');
     const prevButton = document.querySelector('#prevHit');
     const nextButton = document.querySelector('#nextHit');
-    const searchCount = document.querySelector('#searchCount');
     const emptyState = document.querySelector('#emptyState');
     const menuButton = document.querySelector('#menuButton');
     const themeButton = document.querySelector('#themeButton');
@@ -1055,12 +1040,10 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       hits.forEach((hit) => hit.classList.remove('current'));
       if (!hits.length) {{
         currentHit = -1;
-        searchCount.textContent = '0 / 0';
         return;
       }}
       currentHit = (index + hits.length) % hits.length;
       hits[currentHit].classList.add('current');
-      searchCount.textContent = `${{currentHit + 1}} / ${{hits.length}}`;
       if (scroll) hits[currentHit].scrollIntoView({{ behavior: 'smooth', block: 'center' }});
     }}
 
