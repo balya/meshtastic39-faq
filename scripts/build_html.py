@@ -283,7 +283,6 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     )
     nav_items = "\n".join(
         f'<a class="nav-item" href="#q-{article.id}" data-target="q-{article.id}">'
-        f'<span class="nav-id">{article.id}</span>'
         f'<span class="nav-question">{html.escape(article.question)}</span></a>'
         for article in articles
     )
@@ -589,21 +588,13 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     }}
 
     .nav-item {{
-      display: grid;
-      grid-template-columns: 44px minmax(0, 1fr);
-      gap: 10px;
-      align-items: start;
+      display: block;
       padding: 6px 12px;
       border-radius: 6px;
       color: var(--muted);
       font-size: 14px;
       line-height: 1.35;
       text-decoration: none;
-    }}
-
-    .nav-id {{
-      color: var(--muted);
-      font-variant-numeric: tabular-nums;
     }}
 
     .nav-question {{
