@@ -217,6 +217,30 @@ def load_articles(questions: dict[str, Question]) -> list[Article]:
 
 
 def build_page(articles: list[Article], keywords: list[str]) -> str:
+    anchor_onclick = (
+        "event.preventDefault();"
+        "const u=new URL(location.href);"
+        "u.hash=this.dataset.anchorId;"
+        "history.pushState(null,``,u);"
+        "const target=document.getElementById(this.dataset.anchorId);"
+        "if(target)target.scrollIntoView({behavior:`smooth`,block:`start`});"
+        "this.classList.add(`copied`);"
+        "this.setAttribute(`aria-label`,`Ссылка скопирована`);"
+        "this.setAttribute(`title`,`Ссылка скопирована`);"
+        "setTimeout(function(){this.classList.remove(`copied`);"
+        "this.setAttribute(`aria-label`,`Скопировать ссылку`);"
+        "this.setAttribute(`title`,`Скопировать ссылку`)}.bind(this),1200);"
+        "const t=document.createElement(`textarea`);"
+        "t.value=u.toString();"
+        "t.setAttribute(`readonly`,``);"
+        "t.style.position=`fixed`;"
+        "t.style.left=`-9999px`;"
+        "document.body.append(t);"
+        "t.select();"
+        "try{document.execCommand(`copy`)}catch(e){}"
+        "t.remove();"
+        "return false;"
+    )
     nav_items = "\n".join(
         f'<a class="nav-item" href="#q-{article.id}" data-target="q-{article.id}">'
         f'<span>{article.id}</span>{html.escape(article.question)}</a>'
@@ -228,7 +252,10 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
           <header class="article-header">
             <p class="article-id">#{article.id}</p>
             <h2>{html.escape(article.question)}</h2>
-            <a class="anchor" href="#q-{article.id}" aria-label="Ссылка на вопрос {article.id}">#</a>
+            <a class="anchor" href="#q-{article.id}" data-anchor-id="q-{article.id}" onclick="{html.escape(anchor_onclick, quote=True)}" aria-label="Скопировать ссылку на вопрос {article.id}" title="Скопировать ссылку">
+              <svg class="anchor-icon anchor-icon-link" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l2.8-2.8a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0Z"/><path d="M8.46 16.95a4 4 0 0 1 0-5.66l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a2 2 0 1 0 2.83 2.83l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a4 4 0 0 1-5.67-.01Z"/><path d="M13.42 14.83a1 1 0 0 1 0-1.41l2.12-2.12a2 2 0 1 0-2.83-2.83l-2.12 2.12a1 1 0 1 1-1.42-1.42l2.12-2.12a4 4 0 1 1 5.66 5.66l-2.12 2.12a1 1 0 0 1-1.41 0Z"/></svg>
+              <svg class="anchor-icon anchor-icon-done" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/></svg>
+            </a>
           </header>
           <div class="article-body">{article.html}</div>
         </article>
@@ -573,11 +600,78 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       border-radius: 6px;
       color: var(--muted);
       text-decoration: none;
+      transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
     }}
 
     .anchor:hover {{
       background: var(--surface-soft);
       color: var(--accent-strong);
+    }}
+
+    .anchor:active {{
+      transform: scale(0.94);
+    }}
+
+    .anchor-icon {{
+      grid-area: 1 / 1;
+      width: 19px;
+      height: 19px;
+      fill: currentColor;
+      transition: opacity 140ms ease, transform 140ms ease;
+    }}
+
+    .anchor-icon-done {{
+      opacity: 0;
+      transform: scale(0.55);
+    }}
+
+    .anchor.copied {{
+      background: var(--accent);
+      color: var(--bg);
+      animation: anchor-pop 260ms ease;
+    }}
+
+    .article:target .anchor {{
+      animation: anchor-pop 260ms ease, anchor-target-flash 1200ms ease;
+    }}
+
+    .anchor.copied .anchor-icon-link {{
+      opacity: 0;
+      transform: scale(0.55) rotate(-10deg);
+    }}
+
+    .article:target .anchor .anchor-icon-link {{
+      animation: anchor-link-target 1200ms ease;
+    }}
+
+    .anchor.copied .anchor-icon-done {{
+      opacity: 1;
+      transform: scale(1);
+    }}
+
+    .article:target .anchor .anchor-icon-done {{
+      animation: anchor-done-target 1200ms ease;
+    }}
+
+    @keyframes anchor-pop {{
+      0% {{ transform: scale(0.92); }}
+      65% {{ transform: scale(1.08); }}
+      100% {{ transform: scale(1); }}
+    }}
+
+    @keyframes anchor-target-flash {{
+      0%, 78% {{ background: var(--accent); color: var(--bg); }}
+      100% {{ background: transparent; color: var(--muted); }}
+    }}
+
+    @keyframes anchor-link-target {{
+      0%, 78% {{ opacity: 0; transform: scale(0.55) rotate(-10deg); }}
+      100% {{ opacity: 1; transform: scale(1); }}
+    }}
+
+    @keyframes anchor-done-target {{
+      0%, 78% {{ opacity: 1; transform: scale(1); }}
+      100% {{ opacity: 0; transform: scale(0.55); }}
     }}
 
     .article-body {{
@@ -845,6 +939,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     const mobileMenuBackdrop = document.querySelector('#mobileMenuBackdrop');
     const articles = [...document.querySelectorAll('.article')];
     const navItems = [...document.querySelectorAll('.nav-item')];
+    const anchorLinks = [...document.querySelectorAll('.anchor')];
     const markClass = 'search-hit';
     let hits = [];
     let currentHit = -1;
@@ -956,6 +1051,56 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       searchInput.focus();
     }}
 
+    async function copyText(value) {{
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.append(textarea);
+      textarea.select();
+      const copied = document.execCommand('copy');
+      textarea.remove();
+      if (copied) return true;
+
+      if (navigator.clipboard && window.isSecureContext) {{
+        await navigator.clipboard.writeText(value);
+        return true;
+      }}
+
+      return false;
+    }}
+
+    function showAnchorCopied(anchor) {{
+      anchor.classList.add('copied');
+      anchor.setAttribute('aria-label', 'Ссылка скопирована');
+      anchor.setAttribute('title', 'Ссылка скопирована');
+      window.setTimeout(() => {{
+        anchor.classList.remove('copied');
+        anchor.setAttribute('aria-label', 'Скопировать ссылку');
+        anchor.setAttribute('title', 'Скопировать ссылку');
+      }}, 1200);
+    }}
+
+    function handleAnchorClick(event) {{
+      const anchor = event.target.closest ? event.target.closest('.anchor') : event.currentTarget;
+      if (!anchor) return;
+      event.preventDefault();
+      const target = document.querySelector(`#${{anchor.dataset.anchorId}}`);
+      const url = new URL(window.location.href);
+      url.hash = anchor.dataset.anchorId;
+
+      history.pushState(null, '', url);
+      if (target) target.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+      showAnchorCopied(anchor);
+      copyText(url.toString()).catch(() => false);
+    }}
+
+    var handleAnchorInline = window.handleAnchorInline = function(anchor, event) {{
+      handleAnchorClick(event);
+      return false;
+    }};
+
     document.addEventListener('click', (event) => {{
       const tag = event.target.closest('.tag-link');
       if (tag) {{
@@ -967,6 +1112,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         setMenuOpen(false);
       }}
     }});
+    document.addEventListener('click', handleAnchorClick, true);
 
     menuButton.addEventListener('click', () => {{
       setMenuOpen(!document.body.classList.contains('mobile-menu-open'));
@@ -981,6 +1127,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     }});
 
     searchInput.addEventListener('input', () => updateSearch(true));
+    anchorLinks.forEach((anchor) => anchor.addEventListener('click', handleAnchorClick));
     nextButton.addEventListener('click', () => setCurrentHit(currentHit + 1, true));
     prevButton.addEventListener('click', () => setCurrentHit(currentHit - 1, true));
 

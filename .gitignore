@@ -3,3 +3,4 @@
 .trunk
 __pycache__/
 ._*
+docs/index.html
