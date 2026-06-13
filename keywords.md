@@ -10,3 +10,5 @@
 - прошивка
 - android
 - ios
+- esp32
+- nrf52
