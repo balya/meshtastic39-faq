@@ -1,3 +1,5 @@
 .vscode
 .history
 .trunk
+__pycache__/
+._*
