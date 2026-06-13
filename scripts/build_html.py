@@ -31,6 +31,7 @@ class Article:
     body: str
     html: str
     tags: tuple[str, ...]
+    published: bool
 
 
 def parse_questions(path: Path) -> dict[str, Question]:
@@ -212,12 +213,16 @@ def load_articles(questions: dict[str, Question]) -> list[Article]:
                 body=body,
                 html=markdown_to_html(body),
                 tags=article_tags(body),
+                published=questions[article_id].published,
             )
         )
     return articles
 
 
 def build_page(articles: list[Article], keywords: list[str]) -> str:
+    def draft_badge(article: Article) -> str:
+        return "" if article.published else '<span class="draft-badge">Черновик</span>'
+
     anchor_onclick = (
         "event.preventDefault();"
         "const u=new URL(location.href);"
@@ -244,19 +249,23 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     )
     nav_items = "\n".join(
         f'<a class="nav-item" href="#q-{article.id}" data-target="q-{article.id}">'
-        f'<span>{article.id}</span>{html.escape(article.question)}</a>'
+        f'<span class="nav-id">{article.id}</span>'
+        f'<span class="nav-question">{html.escape(article.question)}</span></a>'
         for article in articles
     )
     article_cards = "\n".join(
         f"""
         <article class="article" id="q-{article.id}" data-id="{article.id}" data-question="{html.escape(article.question)}">
           <header class="article-header">
-            <p class="article-id">#{article.id}</p>
             <h2>{html.escape(article.question)}</h2>
-            <a class="anchor" href="#q-{article.id}" data-anchor-id="q-{article.id}" onclick="{html.escape(anchor_onclick, quote=True)}" aria-label="Скопировать ссылку на вопрос {article.id}" title="Скопировать ссылку">
-              <svg class="anchor-icon anchor-icon-link" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l2.8-2.8a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0Z"/><path d="M8.46 16.95a4 4 0 0 1 0-5.66l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a2 2 0 1 0 2.83 2.83l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a4 4 0 0 1-5.67-.01Z"/><path d="M13.42 14.83a1 1 0 0 1 0-1.41l2.12-2.12a2 2 0 1 0-2.83-2.83l-2.12 2.12a1 1 0 1 1-1.42-1.42l2.12-2.12a4 4 0 1 1 5.66 5.66l-2.12 2.12a1 1 0 0 1-1.41 0Z"/></svg>
-              <svg class="anchor-icon anchor-icon-done" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/></svg>
-            </a>
+            <div class="article-meta">
+              <p class="article-id">#{article.id}</p>
+              {draft_badge(article)}
+              <a class="anchor" href="#q-{article.id}" data-anchor-id="q-{article.id}" onclick="{html.escape(anchor_onclick, quote=True)}" aria-label="Скопировать ссылку на вопрос {article.id}" title="Скопировать ссылку">
+                <svg class="anchor-icon anchor-icon-link" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l2.8-2.8a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0Z"/><path d="M8.46 16.95a4 4 0 0 1 0-5.66l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a2 2 0 1 0 2.83 2.83l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a4 4 0 0 1-5.67-.01Z"/><path d="M13.42 14.83a1 1 0 0 1 0-1.41l2.12-2.12a2 2 0 1 0-2.83-2.83l-2.12 2.12a1 1 0 1 1-1.42-1.42l2.12-2.12a4 4 0 1 1 5.66 5.66l-2.12 2.12a1 1 0 0 1-1.41 0Z"/></svg>
+                <svg class="anchor-icon anchor-icon-done" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/></svg>
+              </a>
+            </div>
           </header>
           <div class="article-body">{article.html}</div>
         </article>
@@ -305,6 +314,9 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       --pre-text: var(--text);
       --mark: rgba(255, 215, 142, 0.45);
       --mark-current: #67ea94;
+      --draft-bg: #fff2cc;
+      --draft-border: #f0c36d;
+      --draft-text: #7a5200;
       --topbar: rgba(255, 255, 255, 0.86);
       --shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.10);
       color-scheme: light;
@@ -329,6 +341,9 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       --pre-text: #bfc7d5;
       --mark: rgba(255, 215, 142, 0.25);
       --mark-current: rgba(103, 234, 148, 0.45);
+      --draft-bg: rgba(245, 158, 11, 0.18);
+      --draft-border: rgba(245, 158, 11, 0.52);
+      --draft-text: #ffd37a;
       --topbar: rgba(10, 12, 15, 0.85);
       --shadow: 0 5px 40px rgba(0, 0, 0, 0.20);
       color-scheme: dark;
@@ -549,9 +564,13 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       text-decoration: none;
     }}
 
-    .nav-item span {{
+    .nav-id {{
       color: var(--muted);
       font-variant-numeric: tabular-nums;
+    }}
+
+    .nav-question {{
+      min-width: 0;
     }}
 
     .nav-item:hover, .nav-item.active {{
@@ -581,8 +600,8 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
 
     .article-header {{
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 12px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px 12px;
       align-items: start;
       padding: 18px 22px 12px;
       border-bottom: 1px solid var(--line);
@@ -590,11 +609,36 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     }}
 
     .article-id {{
-      margin: 4px 0 0;
+      margin: 0;
       color: var(--muted);
       font-size: 13px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
+    }}
+
+    .article-meta {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      margin: 1px 0 0;
+    }}
+
+    .draft-badge {{
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      padding: 1px 7px;
+      border: 1px solid var(--draft-border);
+      border-radius: 999px;
+      background: var(--draft-bg);
+      color: var(--draft-text);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      white-space: nowrap;
     }}
 
     .article h2 {{
@@ -621,6 +665,17 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
     .anchor:hover {{
       background: var(--surface-soft);
       color: var(--accent-strong);
+    }}
+
+    .article-meta .anchor {{
+      width: 24px;
+      height: 24px;
+      margin-left: -2px;
+    }}
+
+    .article-meta .anchor-icon {{
+      width: 17px;
+      height: 17px;
     }}
 
     .anchor:active {{
@@ -894,7 +949,7 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
         padding: 16px 16px 12px;
       }}
 
-      .article-id {{
+      .article-meta {{
         grid-column: 1 / -1;
         margin: 0;
       }}
