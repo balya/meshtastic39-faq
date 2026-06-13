@@ -5,7 +5,9 @@ import argparse
 import html
 import json
 import re
+import subprocess
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 
@@ -32,6 +34,7 @@ class Article:
     html: str
     tags: tuple[str, ...]
     published: bool
+    last_modified: str | None
 
 
 def parse_questions(path: Path) -> dict[str, Question]:
@@ -190,6 +193,26 @@ def article_tags(markdown: str) -> tuple[str, ...]:
     return tuple(tags)
 
 
+def article_last_modified(path: Path) -> str | None:
+    try:
+        relative_path = path.relative_to(ROOT)
+    except ValueError:
+        return None
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "log", "-1", "--format=%cs", "--", str(relative_path)],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+    except OSError:
+        return None
+
+    date = result.stdout.strip()
+    return date or None
+
+
 def load_articles(questions: dict[str, Question]) -> list[Article]:
     articles: list[Article] = []
     for path in sorted(ARTICLES_DIR.glob("*.md")):
@@ -214,6 +237,7 @@ def load_articles(questions: dict[str, Question]) -> list[Article]:
                 html=markdown_to_html(body),
                 tags=article_tags(body),
                 published=questions[article_id].published,
+                last_modified=article_last_modified(path),
             )
         )
     return articles
@@ -222,6 +246,16 @@ def load_articles(questions: dict[str, Question]) -> list[Article]:
 def build_page(articles: list[Article], keywords: list[str]) -> str:
     def draft_badge(article: Article) -> str:
         return "" if article.published else '<span class="draft-badge">Черновик</span>'
+
+    def updated_at(article: Article) -> str:
+        if not article.last_modified:
+            return ""
+        try:
+            display_date = datetime.strptime(article.last_modified, "%Y-%m-%d").strftime("%d.%m.%Y")
+        except ValueError:
+            display_date = article.last_modified
+        iso_date = html.escape(article.last_modified)
+        return f'<time class="article-updated" datetime="{iso_date}">Обновлено: {html.escape(display_date)}</time>'
 
     anchor_onclick = (
         "event.preventDefault();"
@@ -259,12 +293,15 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
           <header class="article-header">
             <h2>{html.escape(article.question)}</h2>
             <div class="article-meta">
-              <p class="article-id">#{article.id}</p>
-              {draft_badge(article)}
-              <a class="anchor" href="#q-{article.id}" data-anchor-id="q-{article.id}" onclick="{html.escape(anchor_onclick, quote=True)}" aria-label="Скопировать ссылку на вопрос {article.id}" title="Скопировать ссылку">
-                <svg class="anchor-icon anchor-icon-link" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l2.8-2.8a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0Z"/><path d="M8.46 16.95a4 4 0 0 1 0-5.66l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a2 2 0 1 0 2.83 2.83l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a4 4 0 0 1-5.67-.01Z"/><path d="M13.42 14.83a1 1 0 0 1 0-1.41l2.12-2.12a2 2 0 1 0-2.83-2.83l-2.12 2.12a1 1 0 1 1-1.42-1.42l2.12-2.12a4 4 0 1 1 5.66 5.66l-2.12 2.12a1 1 0 0 1-1.41 0Z"/></svg>
-                <svg class="anchor-icon anchor-icon-done" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/></svg>
-              </a>
+              <div class="article-meta-main">
+                <p class="article-id">#{article.id}</p>
+                {draft_badge(article)}
+                <a class="anchor" href="#q-{article.id}" data-anchor-id="q-{article.id}" onclick="{html.escape(anchor_onclick, quote=True)}" aria-label="Скопировать ссылку на вопрос {article.id}" title="Скопировать ссылку">
+                  <svg class="anchor-icon anchor-icon-link" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l2.8-2.8a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0Z"/><path d="M8.46 16.95a4 4 0 0 1 0-5.66l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a2 2 0 1 0 2.83 2.83l2.12-2.12a1 1 0 0 1 1.42 1.42l-2.12 2.12a4 4 0 0 1-5.67-.01Z"/><path d="M13.42 14.83a1 1 0 0 1 0-1.41l2.12-2.12a2 2 0 1 0-2.83-2.83l-2.12 2.12a1 1 0 1 1-1.42-1.42l2.12-2.12a4 4 0 1 1 5.66 5.66l-2.12 2.12a1 1 0 0 1-1.41 0Z"/></svg>
+                  <svg class="anchor-icon anchor-icon-done" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/></svg>
+                </a>
+              </div>
+              {updated_at(article)}
             </div>
           </header>
           <div class="article-body">{article.html}</div>
@@ -621,7 +658,25 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       flex-wrap: wrap;
       gap: 7px;
       align-items: center;
+      justify-content: space-between;
       margin: 1px 0 0;
+    }}
+
+    .article-meta-main {{
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      min-width: 0;
+    }}
+
+    .article-updated {{
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      opacity: 0.68;
+      white-space: nowrap;
     }}
 
     .draft-badge {{
@@ -952,6 +1007,10 @@ def build_page(articles: list[Article], keywords: list[str]) -> str:
       .article-meta {{
         grid-column: 1 / -1;
         margin: 0;
+      }}
+
+      .article-updated {{
+        display: none;
       }}
 
       .article h2 {{ font-size: 19px; }}
